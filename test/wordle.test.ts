@@ -10,17 +10,22 @@ import { matchGuess } from '../src/wordle';
 //   // Pattern: invariant. The result always has exactly five colors.
 // (invariant, algebraic, metamorphic, differential, or conditional)
 
-const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+// const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+const ALPHABET = 'ABC';
 
 // Step 1: a generator for five-letter uppercase words.
 const wordFrom = (letters: string) =>
   fc.array(fc.constantFrom(...letters), { minLength: 5, maxLength: 5 }).map(cs => cs.join(''));
-// const word = wordFrom(ALPHABET);
-const word = ('ABC')
+const word = wordFrom(ALPHABET);
+const secretAndGuess = word.map(secret => ({
+  secret,
+  guess: secret.slice(1) + secret[0],
+}));
 
 
 
 describe('matchGuess', () => {
+  // Pattern: invariant. The result will always have exactly 5 colors in the result
   it('returns exactly five colors', () => {
     fc.assert(
       fc.property(word, word, (secret, guess) => {
@@ -29,6 +34,7 @@ describe('matchGuess', () => {
     );
   });
 
+  // Pattern: invariant. The result will only contain the colors G, Y, and B
   it('only uses the colors G, Y, B', () => {
     fc.assert(
       fc.property(word, word, (secret, guess) => {
@@ -37,6 +43,7 @@ describe('matchGuess', () => {
     );
   });
 
+  // Pattern: metamorphic. Guessing the secret gives all greens
   it('guessing the secret gives all greens', () => {
     fc.assert(
       fc.property(word, w => {
@@ -45,6 +52,7 @@ describe('matchGuess', () => {
     );
   });
 
+  // Pattern: metamorphic. Guessing a word with no letters in common gives all blacks
   it('never credits a letter more times than the secret contains it', () => {
     fc.assert(
       fc.property(word, word, (secret, guess) => {
@@ -57,4 +65,16 @@ describe('matchGuess', () => {
       }),
     );
   });
+
+  // Pattern: Conditional: if all the letters in the guess are in the secret, the result should contain no 'B's
+  it ('never under credits a letter that is in the secret', () => {
+    fc.assert(
+      fc.property(secretAndGuess, ({ secret, guess }) => {
+        const result = matchGuess(secret, guess);
+        expect(result).not.toContain('B');
+      }),
+    );
+  });
+
+  
 });
